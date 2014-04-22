@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,12 +96,11 @@ public class AndroidManifestTest {
     assertEquals("org.robolectric.test.ConfigTestReceiver", config.getReceiverClassName(5));
     assertEquals("org.robolectric.ACTION_DOT_SUBPACKAGE", config.getReceiverIntentFilterActions(5).get(0));
 
-    Map<String, String> meta = config.getReceiverMetaData(5);
+    Map<String, Object> meta = config.getReceiverMetaData(5);
     Object metaValue = meta.get("org.robolectric.metaName1");
     assertEquals("metaValue1", metaValue);
 
     metaValue = meta.get("org.robolectric.metaName2");
-    assertTrue(String.class.isInstance(metaValue));
     assertEquals("metaValue2", metaValue);
 
     metaValue = meta.get("org.robolectric.metaFalse");
@@ -114,6 +114,24 @@ public class AndroidManifestTest {
 
     metaValue = meta.get("org.robolectric.metaFloat");
     assertEquals("1.23", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaColor");
+    assertEquals("#FFFFFF", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaBooleanFromRes");
+    assertEquals("@bool/false_bool_value", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaIntFromRes");
+    assertEquals("@integer/test_integer1", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaColorFromRes");
+    assertEquals("@color/clear", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaStringFromRes");
+    assertEquals("@string/app_name", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaStringOfIntFromRes");
+    assertEquals("@string/str_int", metaValue);
 
     metaValue = meta.get("org.robolectric.metaStringRes");
     assertEquals("@string/app_name", metaValue);
@@ -145,13 +163,12 @@ public class AndroidManifestTest {
   @Test
   @Config(manifest = "src/test/resources/TestAndroidManifestWithAppMetaData.xml")
   public void shouldReturnApplicationMetaData() throws PackageManager.NameNotFoundException {
-    Map<String, String> meta = newConfig("TestAndroidManifestWithAppMetaData.xml").getApplicationMetaData();
+    Map<String, Object> meta = newConfig("TestAndroidManifestWithAppMetaData.xml").getApplicationMetaData();
 
     Object metaValue = meta.get("org.robolectric.metaName1");
     assertEquals("metaValue1", metaValue);
 
     metaValue = meta.get("org.robolectric.metaName2");
-    assertTrue(String.class.isInstance(metaValue));
     assertEquals("metaValue2", metaValue);
 
     metaValue = meta.get("org.robolectric.metaFalse");
@@ -165,6 +182,24 @@ public class AndroidManifestTest {
 
     metaValue = meta.get("org.robolectric.metaFloat");
     assertEquals("1.23", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaColor");
+    assertEquals("#FFFFFF", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaBooleanFromRes");
+    assertEquals("@bool/false_bool_value", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaIntFromRes");
+    assertEquals("@integer/test_integer1", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaColorFromRes");
+    assertEquals("@color/clear", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaStringFromRes");
+    assertEquals("@string/app_name", metaValue);
+
+    metaValue = meta.get("org.robolectric.metaStringOfIntFromRes");
+    assertEquals("@string/str_int", metaValue);
 
     metaValue = meta.get("org.robolectric.metaStringRes");
     assertEquals("@string/app_name", metaValue);
@@ -244,6 +279,14 @@ public class AndroidManifestTest {
     ActivityData activityData = appManifest.getActivityData("org.robolectric.shadows.TestTaskAffinityActivity");
     assertThat(activityData).isNotNull();
     assertThat(activityData.getTaskAffinity()).isEqualTo("org.robolectric.shadows.TestTaskAffinity");
+  }
+
+  @Test
+  public void shouldReadPartiallyQualifiedActivities() throws Exception {
+    AndroidManifest config = newConfig("TestAndroidManifestForActivities.xml");
+    assertThat(config.getActivityDatas()).hasSize(2);
+    assertThat(config.getActivityDatas()).containsKey("org.robolectric.shadows.TestActivity");
+    assertThat(config.getActivityDatas()).containsKey("org.robolectric.shadows.TestActivity2");
   }
 
   /////////////////////////////
