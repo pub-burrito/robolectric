@@ -21,6 +21,13 @@
       <libsqlite.version>0.282-3</libsqlite.version>
   </properties>
 
+  <repositories>
+	<repository>
+		<id>cloud.archiva.internal</id>
+		<url>http://archiva.cliff.cloudburrito.com:8080/archiva/repository/internal/</url>
+	</repository>
+  </repositories>
+  
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -145,8 +152,8 @@
     </dependency>
 
     <dependency>
-      <groupId>com.android.support</groupId>
-      <artifactId>support-v4</artifactId>
+	  <groupId>android.support</groupId>
+      <artifactId>compatibility-v4</artifactId>
       <version>19.0.0</version>
       <scope>compile</scope>
     </dependency>
