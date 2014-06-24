@@ -142,7 +142,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
   }
 
   protected ClassLoader createRobolectricClassLoader(Setup setup, SdkConfig sdkConfig) {
-    URL[] urls = MAVEN_CENTRAL.getLocalArtifactUrls(this, sdkConfig.getSdkClasspathDependencies()).values().toArray(new URL[0]);
+    URL[] urls = MAVEN_CENTRAL.getLocalArtifactUrls(this, sdkConfig.getSdkClasspathDependencies());
     return new AsmInstrumentingClassLoader(setup, urls);
   }
 
@@ -223,7 +223,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
           }
           assureTestLifecycle(sdkEnvironment);
 
-          parallelUniverseInterface.resetStaticState();
+          parallelUniverseInterface.resetStaticState(config);
           parallelUniverseInterface.setSdkConfig(sdkEnvironment.getSdkConfig());
 
           boolean strictI18n = determineI18nStrictState(bootstrappedMethod);
@@ -262,7 +262,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
             try {
               internalAfterTest(bootstrappedMethod);
             } finally {
-              parallelUniverseInterface.resetStaticState(); // afterward too, so stuff doesn't hold on to classes?
+              parallelUniverseInterface.resetStaticState(config); // afterward too, so stuff doesn't hold on to classes?
               // todo: is this really needed?
               Thread.currentThread().setContextClassLoader(RobolectricTestRunner.class.getClassLoader());
             }
@@ -333,7 +333,7 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
     String resourcesProperty = System.getProperty("android.resources");
     String assetsProperty = System.getProperty("android.assets");
 
-    FsFile fsFile = Fs.currentDirectory();
+    FsFile fsFile = getBaseDir();
     FsFile manifestFile;
     FsFile resDir;
     FsFile assetsDir;
@@ -364,6 +364,10 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
     }
   }
 
+  protected FsFile getBaseDir() {
+    return Fs.currentDirectory();
+  }
+
   public Config getConfig(Method method) {
     Config config = AnnotationUtil.defaultsFor(Config.class);
 
@@ -372,9 +376,14 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
       config = new Config.Implementation(config, globalConfig);
     }
 
-    Config classConfig = method.getDeclaringClass().getAnnotation(Config.class);
-    if (classConfig != null) {
-      config = new Config.Implementation(config, classConfig);
+    Config methodClassConfig = method.getDeclaringClass().getAnnotation(Config.class);
+    if (methodClassConfig != null) {
+      config = new Config.Implementation(config, methodClassConfig);
+    }
+
+    Config testClassConfig = getTestClass().getJavaClass().getAnnotation(Config.class);
+    if (testClassConfig != null) {
+      config = new Config.Implementation(config, testClassConfig);
     }
 
     Config methodConfig = method.getAnnotation(Config.class);

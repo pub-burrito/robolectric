@@ -137,6 +137,20 @@ public class ActivityControllerTest {
     transcript.assertEventsInclude("finishedOnUserLeaveHint", "onUserLeaveHint");
   }
 
+  @Test
+  public void setup_callsLifecycleMethodsAndMakesVisible() {
+    controller.setup();
+    transcript.assertEventsInclude("onCreate", "onStart", "onPostCreate", "onResume", "onPostResume");
+    assertEquals(controller.get().getWindow().getDecorView().getParent().getClass().getName(), "android.view.ViewRootImpl");
+  }
+
+  @Test
+  public void setupWithBundle_callsLifecycleMethodsAndMakesVisible() {
+    controller.setup(new Bundle());
+    transcript.assertEventsInclude("onCreate", "onStart", "onRestoreInstanceState", "onPostCreate", "onResume", "onPostResume");
+    assertEquals(controller.get().getWindow().getDecorView().getParent().getClass().getName(), "android.view.ViewRootImpl");
+  }
+
   public static class MyActivity extends Activity {
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {

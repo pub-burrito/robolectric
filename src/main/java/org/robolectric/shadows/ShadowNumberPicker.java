@@ -3,15 +3,20 @@ package org.robolectric.shadows;
 import android.widget.NumberPicker;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.RealObject;
 
+import static org.robolectric.Robolectric.directlyOn;
 
-@Implements(NumberPicker.class)
+@Implements(value = NumberPicker.class)
 public class ShadowNumberPicker extends ShadowLinearLayout {
+  @RealObject
+  private NumberPicker realObject;
   private int value;
-  private String[] displayedValues;
   private int minValue;
   private int maxValue;
   private boolean wrapSelectorWheel;
+  private String[] displayedValues;
+  private NumberPicker.OnValueChangeListener onValueChangeListener;
 
   @Implementation
   public void setValue(int value) {
@@ -25,7 +30,7 @@ public class ShadowNumberPicker extends ShadowLinearLayout {
 
   @Implementation
   public void setDisplayedValues(String[] displayedValues) {
-    if (displayedValues.length != (maxValue - minValue) + 1) {
+    if (displayedValues != null && displayedValues.length != (maxValue - minValue) + 1) {
       throw new RuntimeException("Displayed values should fit into range min and max values");
     }
     this.displayedValues = displayedValues;
@@ -47,6 +52,16 @@ public class ShadowNumberPicker extends ShadowLinearLayout {
   }
 
   @Implementation
+  public int getMinValue() {
+    return this.minValue;
+  }
+
+  @Implementation
+  public int getMaxValue() {
+    return this.maxValue;
+  }
+
+  @Implementation
   public void setWrapSelectorWheel(boolean wrapSelectorWheel) {
     this.wrapSelectorWheel = wrapSelectorWheel;
   }
@@ -54,5 +69,15 @@ public class ShadowNumberPicker extends ShadowLinearLayout {
   @Implementation
   public boolean getWrapSelectorWheel() {
     return wrapSelectorWheel;
+  }
+
+  @Implementation
+  public void setOnValueChangedListener(NumberPicker.OnValueChangeListener listener) {
+    directlyOn(realObject, NumberPicker.class).setOnValueChangedListener(listener);
+    this.onValueChangeListener = listener;
+  }
+
+  public NumberPicker.OnValueChangeListener getOnValueChangeListener() {
+    return onValueChangeListener;
   }
 }

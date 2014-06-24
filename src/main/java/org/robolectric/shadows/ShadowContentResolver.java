@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-@Implements(ContentResolver.class)
+@Implements(value = ContentResolver.class, resetStaticState = true)
 public class ShadowContentResolver {
   private int nextDatabaseIdForInserts;
   private int nextDatabaseIdForUpdates;
@@ -298,6 +298,13 @@ public class ShadowContentResolver {
     Status status = getStatus(account, authority, true);
     status.syncRequests++;
     status.syncExtras = extras;
+  }
+
+  @Implementation
+  public static boolean isSyncActive(Account account, String authority) {
+    ShadowContentResolver.Status status = getStatus(account, authority);
+    // TODO: this means a sync is *perpetually* active after one request
+    return status != null && status.syncRequests > 0;
   }
 
   @Implementation

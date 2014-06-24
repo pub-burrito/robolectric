@@ -14,11 +14,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Properties;
 
 import static android.content.pm.ApplicationInfo.FLAG_ALLOW_BACKUP;
@@ -58,6 +60,7 @@ public class AndroidManifest {
   private final List<ContentProviderData> providers = new ArrayList<ContentProviderData>();
   private final List<ReceiverAndIntentFilter> receivers = new ArrayList<ReceiverAndIntentFilter>();
   private final Map<String, ActivityData> activityDatas = new LinkedHashMap<String, ActivityData>();
+  private final List<String> usedPermissions = new ArrayList<String>();
   private MetaData applicationMetaData;
   private List<AndroidManifest> libraryManifests;
 
@@ -160,10 +163,20 @@ public class AndroidManifest {
       parseActivities(manifestDocument);
       parseApplicationMetaData(manifestDocument);
       parseContentProviders(manifestDocument);
+      parseUsedPermissions(manifestDocument);
     } catch (Exception ignored) {
       ignored.printStackTrace();
     }
     manifestIsParsed = true;
+  }
+
+  private void parseUsedPermissions(Document manifestDocument) {
+    NodeList elementsByTagName = manifestDocument.getElementsByTagName("uses-permission");
+    int length = elementsByTagName.getLength();
+    for (int i = 0; i < length; i++) {
+      Node node = elementsByTagName.item(i).getAttributes().getNamedItem("android:name");
+      usedPermissions.add(node.getNodeValue());
+    }
   }
 
   private void parseContentProviders(Document manifestDocument) {
@@ -249,11 +262,57 @@ public class AndroidManifest {
           categories.add(categoryNameNode.getNodeValue());
         }
       }
-
-      intentFilterDatas.add(new IntentFilterData(actionNames, categories));
+      IntentFilterData intentFilterData = new IntentFilterData(actionNames, categories);
+      intentFilterData = parseIntentFilterData(n, intentFilterData);
+      intentFilterDatas.add(intentFilterData);
     }
 
     return intentFilterDatas;
+  }
+
+  private IntentFilterData parseIntentFilterData(final Node intentFilterNode, IntentFilterData intentFilterData) {
+    for (Node n : getChildrenTags(intentFilterNode, "data")) {
+      NamedNodeMap attributes = n.getAttributes();
+      String host = null;
+      String port = null;
+
+      Node schemeNode = attributes.getNamedItem("android:scheme");
+      if (schemeNode != null) {
+        intentFilterData.addScheme(schemeNode.getNodeValue());
+      }
+
+      Node hostNode = attributes.getNamedItem("android:host");
+      if (hostNode != null) {
+        host = hostNode.getNodeValue();
+      }
+
+      Node portNode = attributes.getNamedItem("android:port");
+      if (portNode != null) {
+        port = portNode.getNodeValue();
+      }
+      intentFilterData.addAuthority(host, port);
+
+      Node pathNode = attributes.getNamedItem("android:path");
+      if (pathNode != null) {
+        intentFilterData.addPath(pathNode.getNodeValue());
+      }
+
+      Node pathPatternNode = attributes.getNamedItem("android:pathPattern");
+      if (pathPatternNode != null) {
+        intentFilterData.addPathPattern(pathPatternNode.getNodeValue());
+      }
+
+      Node pathPrefixNode = attributes.getNamedItem("android:pathPrefix");
+      if (pathPrefixNode != null) {
+        intentFilterData.addPathPrefix(pathPrefixNode.getNodeValue());
+      }
+
+      Node mimeTypeNode = attributes.getNamedItem("android:mimeType");
+      if (mimeTypeNode != null) {
+        intentFilterData.addMimeType(mimeTypeNode.getNodeValue());
+      }
+    }
+    return intentFilterData;
   }
 
   /***
@@ -298,7 +357,7 @@ public class AndroidManifest {
   /***
    * Allows {@link org.robolectric.res.builder.RobolectricPackageManager} to provide
    * a resource index for initialising the resource attributes in all the metadata elements
-   * @param resIndex used for getting resource IDs from string identifiers
+   * @param resLoader used for getting resource IDs from string identifiers
    */
   public void initMetaData(ResourceLoader resLoader) {
     applicationMetaData.init(resLoader, packageName);
@@ -426,12 +485,12 @@ public class AndroidManifest {
   }
 
   public List<ResourcePath> getIncludedResourcePaths() {
-    List<ResourcePath> resourcePaths = new ArrayList<ResourcePath>();
+    Collection<ResourcePath> resourcePaths = new LinkedHashSet<ResourcePath>(); // Needs stable ordering and no duplicates
     resourcePaths.add(getResourcePath());
     for (AndroidManifest libraryManifest : getLibraryManifests()) {
       resourcePaths.addAll(libraryManifest.getIncludedResourcePaths());
     }
-    return resourcePaths;
+    return new ArrayList<ResourcePath>(resourcePaths);
   }
 
   public List<ContentProviderData> getContentProviders() {
@@ -463,8 +522,12 @@ public class AndroidManifest {
       String lib;
       while ((lib = properties.getProperty("android.library.reference." + libRef)) != null) {
         FsFile libraryBaseDir = baseDir.join(lib);
-        if (libraryBaseDir.exists()) {
-          libraryBaseDirs.add(libraryBaseDir);
+        if (libraryBaseDir.isDirectory()) {
+          // Ignore directories without any files
+          FsFile[] libraryBaseDirFiles = libraryBaseDir.listFiles();
+          if (libraryBaseDirFiles != null && libraryBaseDirFiles.length > 0) {
+            libraryBaseDirs.add(libraryBaseDir);
+          }
         }
 
         libRef++;
@@ -584,6 +647,11 @@ public class AndroidManifest {
   public Map<String, ActivityData> getActivityDatas() {
     parseAndroidManifest();
     return activityDatas;
+  }
+
+  public List<String> getUsedPermissions() {
+    parseAndroidManifest();
+    return usedPermissions;
   }
 
   private static final class MetaData {

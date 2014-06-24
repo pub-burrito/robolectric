@@ -34,6 +34,17 @@ public class ResourceLoaderTest {
     assertThat(textView.getText().toString()).isEqualTo("land");
   }
 
+  @Test 
+  public void checkDefaultBooleanValue() throws Exception {
+	  assertThat(Robolectric.application.getResources().getBoolean(R.bool.different_resource_boolean)).isEqualTo(false);
+  }
+
+  @Test
+  @Config(qualifiers="w820dp")
+  public void checkQualifiedBooleanValue() throws Exception {
+	  assertThat(Robolectric.application.getResources().getBoolean(R.bool.different_resource_boolean)).isEqualTo(true);
+  }
+  
   @Test
   public void checkForPollution1() throws Exception {
     checkForPollutionHelper();
@@ -62,7 +73,7 @@ public class ResourceLoaderTest {
     Class<?> internalRIdClass = Robolectric.class.getClassLoader().loadClass("com.android.internal.R$" + internalResource.type);
     assertThat(resId).isEqualTo(field(internalResource.name).ofType(int.class).in(internalRIdClass).get());
 
-    assertThat(Robolectric.application.getResources().getString(resId)).isEqualTo("The old PIN you typed isn\\'t correct.");
+    assertThat(Robolectric.application.getResources().getString(resId)).isEqualTo("The old PIN you typed isn't correct.");
   }
 
   private static class TestPreferenceActivity extends PreferenceActivity { }

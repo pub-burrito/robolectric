@@ -2,6 +2,7 @@ package org.robolectric.shadows;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.appwidget.AppWidgetProvider;
@@ -233,7 +234,7 @@ public class ActivityTest {
   @Test
   public void shouldRetrievePackageNameFromTheManifest() throws Exception {
     AndroidManifest appManifest = newConfigWith("com.wacka.wa", "");
-    Robolectric.application = new DefaultTestLifecycle().createApplication(null, appManifest);
+    Robolectric.application = new DefaultTestLifecycle().createApplication(null, appManifest, null);
     shadowOf(application).bind(appManifest, null);
 
     assertThat("com.wacka.wa").isEqualTo(new Activity().getPackageName());
@@ -739,11 +740,39 @@ public class ActivityTest {
   }
 
   @Test
-  public void canStartActivityFromFragment() throws Exception {
-    Activity activity = buildActivity(Activity.class).create().get();
+  public void canStartActivityFromFragment() {
+    final Activity activity = buildActivity(Activity.class).create().get();
+
     Intent intent = new Intent(Intent.ACTION_VIEW);
-    activity.startActivityFromFragment(new Fragment(), intent, 0);
-    assertThat(shadowOf(activity).getNextStartedActivity().getAction()).isEqualTo(Intent.ACTION_VIEW);
+    activity.startActivityFromFragment(new Fragment(), intent, 4);
+
+    ShadowActivity.IntentForResult intentForResult = shadowOf(activity).getNextStartedActivityForResult();
+    assertThat(intentForResult.intent).isSameAs(intent);
+    assertThat(intentForResult.requestCode).isEqualTo(4);
+  }
+
+  @Test
+  public void canStartActivityFromFragment_withBundle() {
+    final Activity activity = buildActivity(Activity.class).create().get();
+
+    Bundle options = new Bundle();
+    Intent intent = new Intent(Intent.ACTION_VIEW);
+    activity.startActivityFromFragment(new Fragment(), intent, 5, options);
+
+    ShadowActivity.IntentForResult intentForResult = shadowOf(activity).getNextStartedActivityForResult();
+    assertThat(intentForResult.intent).isSameAs(intent);
+    assertThat(intentForResult.options).isSameAs(options);
+    assertThat(intentForResult.requestCode).isEqualTo(5);
+  }
+
+  @Test
+  public void shouldUseAnimationOverride() {
+    Activity activity = buildActivity(Activity.class).create().get();
+    Intent intent = new Intent(activity, OptionsMenuActivity.class);
+
+    Bundle animationBundle = ActivityOptions.makeCustomAnimation(activity, R.anim.test_anim_1, R.anim.test_anim_1).toBundle();
+    activity.startActivity(intent, animationBundle);
+    assertThat(shadowOf(activity).getNextStartedActivityForResult().options).isSameAs(animationBundle);
   }
 
   /////////////////////////////
