@@ -102,6 +102,11 @@ public class ShadowIntent {
   public String getAction() {
     return action;
   }
+  
+  @Implementation
+  public String getScheme() {
+	  return data != null ? data.getScheme() : null ;
+  }
 
   @Implementation
   public Intent setType(String type) {
